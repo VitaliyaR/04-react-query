@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import ReactPaginate from 'react-paginate';
 
@@ -9,7 +8,7 @@ import Loader from '../Loader/Loader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MovieModal from '../MovieModal/MovieModal';
 
-import { fetchMovies, type MovieApiResponse } from '../../services/movieService';
+import { useMoviesQuery } from '../../hooks/hooks';
 import type { Movie } from '../../types/movie';
 
 import styles from './App.module.css';
@@ -19,20 +18,16 @@ function App() {
   const [page, setPage] = useState(1);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery<MovieApiResponse, Error>({
-    queryKey: ['movies', query, page],
-    queryFn: () => fetchMovies(query, page),
-    enabled: !!query,
-    staleTime: 1000 * 60 * 5,
-    onError: (error: Error) => {
-      console.error('❌ Fetch error:', error.message);
+  const { data, isLoading, isError } = useMoviesQuery({ query, page });
+
+  useEffect(() => {
+    if (data && data.results.length === 0) {
+      toast.error('No movies found for your request.');
+    }
+    if (isError) {
       toast.error('Oops! Something went wrong.');
-    },
-  });
+    }
+  }, [data, isError]);
 
   const handleSearch = (newQuery: string) => {
     setQuery(newQuery);
@@ -50,13 +45,12 @@ function App() {
   return (
     <>
       <Toaster position="top-right" reverseOrder={false} />
-
       <SearchBar onSubmit={handleSearch} />
 
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
 
-      {!!data && (
+      {data?.results && (
         <>
           <MovieGrid movies={data.results} onSelect={handleSelectMovie} />
 
@@ -84,6 +78,7 @@ function App() {
 }
 
 export default App;
+
 
 
 

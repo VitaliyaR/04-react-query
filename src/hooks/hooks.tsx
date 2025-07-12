@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchMovies, type MovieApiResponse } from '../services/movieService';
-import toast from 'react-hot-toast';
 
 interface UseMoviesQueryProps {
   query: string;
@@ -13,7 +12,6 @@ export const useMoviesQuery = ({ query, page }: UseMoviesQueryProps) => {
     queryFn: () => fetchMovies(query, page),
     enabled: !!query,
     staleTime: 1000 * 60 * 5,
-    onError: () => toast.error('Oops! Something went wrong.'),
   });
 };
 
