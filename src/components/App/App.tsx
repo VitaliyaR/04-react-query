@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import toast, { Toaster } from 'react-hot-toast';
 import ReactPaginate from 'react-paginate';
 
@@ -8,7 +9,8 @@ import Loader from '../Loader/Loader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MovieModal from '../MovieModal/MovieModal';
 
-import { useMoviesQuery } from '../../hooks/hooks';
+import { fetchMovies } from '../../services/movieService';
+import type { MovieApiResponse } from '../../services/movieService';
 import type { Movie } from '../../types/movie';
 
 import styles from './App.module.css';
@@ -18,16 +20,24 @@ function App() {
   const [page, setPage] = useState(1);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const { data, isLoading, isError } = useMoviesQuery({ query, page });
+  const {
+    data,
+    isLoading,
+    isError,
+    isSuccess,
+  } = useQuery<MovieApiResponse, Error>({
+    queryKey: ['movies', query, page],
+    queryFn: () => fetchMovies(query, page),
+    enabled: !!query,
+    staleTime: 1000 * 60 * 5,
+    placeholderData: (prev) => prev, // безшовна пагінація
+  });
 
   useEffect(() => {
-    if (data && data.results.length === 0) {
+    if (isSuccess && data.results.length === 0) {
       toast.error('No movies found for your request.');
     }
-    if (isError) {
-      toast.error('Oops! Something went wrong.');
-    }
-  }, [data, isError]);
+  }, [isSuccess, data]);
 
   const handleSearch = (newQuery: string) => {
     setQuery(newQuery);
@@ -47,10 +57,10 @@ function App() {
       <Toaster position="top-right" reverseOrder={false} />
       <SearchBar onSubmit={handleSearch} />
 
-      {isLoading && <Loader />}
-      {isError && <ErrorMessage />}
+      {isLoading && query !== '' && <Loader />}
+      {isError && query !== '' && <ErrorMessage />}
 
-      {data?.results && (
+      {isSuccess && data.results.length > 0 && (
         <>
           <MovieGrid movies={data.results} onSelect={handleSelectMovie} />
 
@@ -78,6 +88,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 
